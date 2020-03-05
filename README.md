@@ -1,6 +1,6 @@
 # Black box recursive translations (BBRT)
 
-This repo contains the code for training and iterative inference of a neural translation model with the [black box recursive translation (BBRT)](https://arxiv.org/abs/1912.10156)) algorithm. 
+This repo contains the code for training and iterative inference of a neural translation model with the [black box recursive translation (BBRT)](https://arxiv.org/abs/1912.10156) algorithm. 
 
 If you do use this for your own project, please consider citing:
 
