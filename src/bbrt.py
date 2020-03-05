@@ -269,7 +269,6 @@ class BBRT:
 		return np.array(total_preds).squeeze(-1)
 
 # output directory, model paths, and seed file
-# output_dir = '/tigress/fdamani/mol-edit-output/onmt-logp04/output'
 output_dir = './output/onmt-logp04/test'
 
 logp_model = './output/onmt-logp04/checkpoints/train_valid_share/model-mlpattention/model-brnnenc-rnndec-2layer-600wordembed-600embed-shareembedding-mlpattention-adamoptim_step_99000.pt'
