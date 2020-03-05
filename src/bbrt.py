@@ -93,6 +93,10 @@ def logp(x):
 def drd2(x):
 	return drd2_scorer.get_score(x)
 
+# TODO: add potency
+# def potency(x):
+# 	return properties.potency(x)
+
 def prop_array(x, prop='logp04', prev_x=None, seed_sim=None):
 	vals = []
 
