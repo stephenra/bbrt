@@ -32,11 +32,31 @@ git submodule update --init
 ## Usage
 
 
-### Preprocessing
+### Processing training pairs
 
+First, run the `process_data.py` script. This will convert input, training pairs encoded as SMILES strings in a TXT file (`train_pairs.txt`), to the [SELFIES](https://github.com/aspuru-guzik-group/selfies) (https://arxiv.org/abs/1905.13741) representation:
+
+```sh
+python process_data.py /data/train_pairs.txt /data/
 ```
+
+### Pre-processing
+
+Next, run the pre-processing script:
+
+```sh
 $ bash preprocess.sh
 ```
+
+ This will run a OpenNMT script to convert the encoded SELFIES to vocabulary files. The output will consist of parallel source (`src`) and target (`tgt`) data containing one sentence per line with tokens separated by a space:
+
+```sh
+    src_train.csv
+    tgt_train.csv
+    src_val.csv
+    tgt_val.csv
+```
+
 
 ### Training an NMT model
 
