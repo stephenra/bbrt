@@ -31,6 +31,10 @@ git submodule update --init
 
 ## Usage
 
+The recommended workflow for BBRT is:
+
+<img src='asset/img/bbrt.png' alt='workflow' width="800"/>
+
 
 ### Processing training pairs
 
