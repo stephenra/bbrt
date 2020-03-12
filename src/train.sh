@@ -1,4 +1,4 @@
-python ../OpenNMT-py/train.py -data /data/onmt-data \
+python OpenNMT-py/train.py -data /data/onmt-data \
 				-global_attention mlp \
 				-word_vec_size 600 \
 				-share_embeddings \
