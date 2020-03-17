@@ -1,6 +1,6 @@
-python OpenNMT-py/preprocess.py -train_src /data/src_train.csv \
-									  -train_tgt /data/tgt_train.csv \
-									  -valid_src /data/src_valid.csv \
-									  -valid_tgt /data/tgt_valid.csv \
+python OpenNMT-py/preprocess.py -train_src /data/bbrt/project_name/src_train.csv \
+									  -train_tgt /data/bbrt/project_name/src_train.csv \
+									  -valid_src /data/bbrt/project_name/src_train.csv \
+									  -valid_tgt /data/bbrt/project_name/src_train.csv \
 									  -share_vocab \
-									  -save_data /data/onmt-data
+									  -save_data /data/bbrt/project_name/omnt/
