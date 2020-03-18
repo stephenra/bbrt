@@ -18,6 +18,8 @@ References
 Damani, F., Sresht, V., & Ra, S. (2019). Black Box Recursive Translations for Molecular Optimization. arXiv preprint arXiv:1912.10156.
 
 """
+
+import pdb
 import sys
 sys.path.insert(0, '..')
 sys.path.insert(0, '../data_analysis')
@@ -45,6 +47,7 @@ from rdkit import Chem
 from rdkit.Chem.rdMolDescriptors import GetMorganFingerprint
 from rdkit import DataStructs
 from rdkit.SimDivFilters.rdSimDivPickers import MaxMinPicker
+
 
 def return_diverse_subset(X, num, max_diverse=True):
 	fps = []
@@ -84,18 +87,19 @@ def smiles_to_selfies(x, token_sep=True):
 		else:
 			output.append('NaN')
 	return output
+
 def selfies_to_smiles(x):
 	return decoder(x)
+
+# def potency(x):
+# 	return properties.potency(x)
 
 def logp(x):
 	return properties.penalized_logp(x)
 
-def drd2(x):
-	return drd2_scorer.get_score(x)
+# def drd2(x):
+# 	return drd2_scorer.get_score(x)
 
-# TODO: add potency
-# def potency(x):
-# 	return properties.potency(x)
 
 def prop_array(x, prop='logp04', prev_x=None, seed_sim=None):
 	vals = []
@@ -227,6 +231,7 @@ class BBRT:
 			if self.max_pop[i] > maxSoFar:
 				maxSoFar = self.max_pop[i]
 			self.max_so_far.append(maxSoFar)
+
 	def translate_and_rank(self, intermed_src, i):
 		if self.translate_type=='sd':
 			preds = self.sd_topk(intermed_src)
@@ -269,19 +274,19 @@ class BBRT:
 		return np.array(total_preds).squeeze(-1)
 
 # output directory, model paths, and seed file
-output_dir = './output/onmt-logp04/test'
+output_dir = '/data/bbrt/bpgm/output'
 
-logp_model = './output/onmt-logp04/checkpoints/train_valid_share/model-mlpattention/model-brnnenc-rnndec-2layer-600wordembed-600embed-shareembedding-mlpattention-adamoptim_step_99000.pt'
-drd2_model = './output/onmt-drd2_short/checkpoints/model-mlpattention/model_step_100000.pt'
-seed_file = './data/logp04/complete_dataset_selfies.csv'
+logp_model = output_dir + '/checkpoints_step_100000.pt' 
+# drd2_model = './output/onmt-drd2_short/checkpoints/model-mlpattention/model_step_100000.pt'
+seed_file = '/data/bbrt/bpgm/bpgm_seed_compounds_selfies.csv'
 
 
 # parameters 
 # TODO: separate config
 model = logp_model # path to model file
-src = './data/logp04/complete_dataset_selfies.csv' # path to src file
+src = '/data/bbrt/bpgm/bpgm_seed_compounds_selfies.csv' # path to src file
 prop = 'logp04' # Property to rank outputs by. Currently supporting drd2, logp04, qed'
-num_seeds = 10 # Number of seed compounds for BBRT.
+num_seeds = 100 # Number of seed compounds for BBRT.
 num_samples = num_seeds # we assume num samples that are propagated are the same number as the input seeds (e.g. one per seed)
 n_best = 5 # Number of sequences decoded
 num_iters = 3 # Number of BBRT iterations.
@@ -289,8 +294,10 @@ k = 5 # top k sampling
 isGreedy = False # true: greedy decoding with beam search, false: top k sampler
 beam_size = 10 # beam search size
 
-score = ['drd2', 'logp04', 'maxsim', 'qed']
-score_dict = {'drd2': drd2, 'log04': logp, 'drd2': drd2}
+# score = ['drd2', 'logp04', 'maxsim', 'qed', 'potency']
+score = ['logp04', 'maxsim', 'qed']
+
+score_dict = {'logp04': logp}
 translate_types = ['sd', 'beam']
 score_func = prop
 translate_type = 'beam' if isGreedy else 'sd' 
