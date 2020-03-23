@@ -3,16 +3,11 @@ import sys
 import time
 import numpy as np
 import pandas as pd
-from itertools import combinations
 import joblib
 from rdkit import Chem
 from rdkit.Chem import AllChem
-from rdkit.Chem.Fingerprints import FingerprintMols
-from rdkit import DataStructs
-import re
 
 import altair as alt
-import seaborn as sns
 import matplotlib.pyplot as plt
 
 
