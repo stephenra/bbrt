@@ -65,7 +65,7 @@ def smiles_to_fp(cmpds_list):
     return fp_list
 
 
-def get_preds(start_smiles, end_smiles, model_path, cmpds):
+def get_preds(start_smiles, end_smiles, cmpds):
     """
     Generates predicted potency values using fitted predictor
     
@@ -79,15 +79,19 @@ def get_preds(start_smiles, end_smiles, model_path, cmpds):
     ----
     cmpds: Pandas DataFrame of predicted potencies for each iteration
     """
+        
     fp_start = smiles_to_fp(start_smiles)
     fp_end = smiles_to_fp(end_smiles)
-    clf = joblib.load(model_path + '/potency_predictor.pkl')
+    clf = joblib.load(model_path)
     start_time = time.time()
     pred_start = clf.predict(fp_start)
     pred_end = clf.predict(fp_end)
     print("Prediction time: ", round(time.time()-start_time, 3), "s")
     cmpds["Iteration 1 Predicted Potency"] = pd.Series(pred_start)
-    cmpds["Iteration 20 Predicted Potency"] = pd.Series(pred_end)
+    cmpds["Iteration 30 Predicted Potency"] = pd.Series(pred_end)
+    top_5_compounds = cmpds["Iteration 30 Predicted Potency"].nlargest(5).reset_index()
+    print('Top 5 compounds (predicted potency) at iteration {}'.format(end_iter), top_5_compounds)
+    
     return cmpds
 
 
