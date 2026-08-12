@@ -22,8 +22,6 @@ The original OpenNMT-era code is preserved in git history.
 
 ## Workflow
 
-<img src='asset/img/bbrt.png' alt='workflow' width="800"/>
-
 BBRT iteratively (1) translates each seed molecule into candidates, (2) scores
 the candidates by a target property, (3) keeps the best per seed, and (4) feeds
 those back in as the next iteration's seeds.
