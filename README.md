@@ -1,16 +1,16 @@
 # Black Box Recursive Translations (BBRT)
 
-PyTorch / Lightning implementation of **Black Box Recursive Translation (BBRT)**
+PyTorch / Lightning implementation of **Black Box Recursive Translations (BBRT)**
 for molecular optimization ([arXiv:1912.10156](https://arxiv.org/abs/1912.10156)).
 
+See the blog post here: https://stephenra.com/blog/bbrt
+
 This is a modernized rewrite of the original OpenNMT-based code. The LSTM
-sequence-to-sequence model has been replaced by a **from-scratch Transformer
+sequence-to-sequence model has now been replaced by a **from-scratch Transformer
 encoder–decoder** (pre-norm, RMSNorm, rotary position embeddings, SwiGLU
-feed-forward, weight-tied shared embeddings), trained with **PyTorch Lightning**.
+feed-forward, and weight-tied shared embeddings), trained with **PyTorch Lightning**.
 Molecules are represented as [SELFIES](https://github.com/aspuru-guzik-group/selfies),
 which guarantees every decoded string is a valid molecule.
-
-The original OpenNMT-era code is preserved in git history.
 
 ```
 @article{damani2019black,
@@ -29,7 +29,7 @@ those back in as the next iteration's seeds.
 ## Installation
 
 This project is managed with [uv](https://docs.astral.sh/uv/). Everything
-(including RDKit) installs from PyPI — no conda required.
+(including RDKit) installs from PyPI.
 
 ```sh
 uv sync                    # create .venv from uv.lock (adds the dev group too)
