@@ -1,0 +1,80 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "bbrt"
+version = "0.2.0"
+description = "Black Box Recursive Translations for Molecular Optimization (PyTorch / Transformer port)"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+    { name = "Farhan Damani" },
+    { name = "Vishnu Sresht" },
+    { name = "Stephen Ra" },
+]
+keywords = ["molecular-optimization", "transformer", "selfies", "cheminformatics"]
+
+dependencies = [
+    "torch>=2.2",
+    "lightning>=2.2",
+    "torchmetrics>=1.3",
+    "selfies>=2.1",
+    "rdkit>=2023.3",
+    "numpy>=1.24",
+    "pandas>=2.0",
+    "pyyaml>=6.0",
+    "networkx>=3.0",
+    "tqdm>=4.66",
+]
+
+[project.optional-dependencies]
+# LLM-backed generator (bbrt.inference.LLMGenerator). Needs a recent Anthropic
+# SDK for output_config / adaptive thinking / prompt caching.
+llm = ["anthropic>=0.69"]
+
+[project.scripts]
+bbrt = "bbrt.cli:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=7.4",
+    "ruff>=0.6",
+    "mypy>=1.11",
+    "pre-commit>=3.7",
+    "types-PyYAML>=6.0",
+]
+
+[tool.uv]
+package = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["bbrt"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.ruff.format]
+docstring-code-format = true
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+follow_imports = "silent"
+disallow_untyped_defs = false
+check_untyped_defs = true
+
+# RDKit / selfies ship no type information; treat them as untyped.
+[[tool.mypy.overrides]]
+module = ["rdkit.*", "selfies.*"]
+follow_imports = "skip"
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
