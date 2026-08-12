@@ -96,6 +96,24 @@ Outputs (per iteration) land in `output_dir`: `prescored_preds_*.csv` (all
 candidates), `scored_preds_*.csv` (best kept per seed), and `history.csv`
 (population mean/std/max and running best).
 
+## Example result
+
+An illustrative `logp04` optimization run — scaled Transformer, 30 seeds, 3 BBRT
+iterations, Tanimoto ≥ 0.4 — comparing the trained generator against the
+`LLMGenerator` backend (Claude Sonnet 4.6 and Opus 4.8):
+
+![Transformer vs LLM generators on logp04](assets/transformer_vs_llm_logp04.png)
+
+| generator | Δ mean penalized logP | best molecule |
+|---|---:|---:|
+| Transformer (trained) | +5.15 | 4.15 |
+| LLM — Sonnet 4.6 | +5.80 | 3.63 |
+| LLM — Opus 4.8 (+thinking) | +4.93 | 5.94 |
+
+*Directional only (single run, small population), not a rigorous benchmark: the
+trained model optimizes the population mean essentially for free, while the
+reasoning LLM finds the best individual molecule.*
+
 ## DRD2 activity model
 
 `score_func: drd2` uses an in-house classifier — the **same Transformer encoder**
