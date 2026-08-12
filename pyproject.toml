@@ -49,6 +49,16 @@ dev = [
 [tool.uv]
 package = true
 
+# Use the CPU-only torch wheels on Linux (CI) instead of PyPI's CUDA build.
+# macOS resolves torch from PyPI as usual (the marker doesn't match).
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+torch = [{ index = "pytorch-cpu", marker = "sys_platform == 'linux'" }]
+
 [tool.hatch.build.targets.wheel]
 packages = ["bbrt"]
 
