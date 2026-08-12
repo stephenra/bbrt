@@ -7,12 +7,22 @@ from bbrt.scoring.properties import (  # noqa: E402
     penalized_logp,
     qed,
     selfies_to_smiles,
+    similarity,
 )
 
 
 def test_qed_range():
     v = qed("c1ccccc1")
     assert 0.0 <= v <= 1.0
+
+
+def test_similarity_self_is_one():
+    assert similarity("CCO", "CCO") == pytest.approx(1.0)
+
+
+def test_similarity_invalid_is_zero():
+    assert similarity("CCO", None) == 0.0
+    assert similarity("not_a_smiles", "CCO") == 0.0
 
 
 def test_selfies_roundtrip():

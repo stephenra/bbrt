@@ -86,6 +86,7 @@ Key `configs/bbrt.yaml` options:
 | field | meaning |
 |---|---|
 | `score_func` | property to optimize: `logp04`, `qed`, or `drd2` |
+| `similarity_min` | keep candidates within this Tanimoto of the seed (e.g. `0.4`); `null` = unconstrained |
 | `translate_type` | `sd` (stochastic top-k sampling) or `beam` |
 | `num_iters` | number of recursive translation rounds |
 | `n_best` / `top_k` / `beam_size` | decoding breadth |

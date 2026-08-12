@@ -91,3 +91,36 @@ def test_bbrt_beam_mode(tmp_path):
     )
     history = BBRT(gen, cfg, selfies_seeds).run()
     assert len(history["max_pop"]) == 2
+
+
+def test_rank_similarity_constraint(tmp_path):
+    """similarity_min excludes candidates too dissimilar from the seed."""
+    from rdkit import Chem
+
+    from bbrt.scoring.properties import qed, selfies_to_smiles, similarity
+
+    seed = "c1ccccc1"  # benzene
+    near = "Cc1ccccc1"  # toluene: similar to benzene
+    far = "CC(=O)Nc1ccc(O)cc1"  # acetaminophen: dissimilar, but higher QED
+    # Preconditions that make the test meaningful.
+    assert similarity(seed, near) > similarity(seed, far)
+    assert qed(far) > qed(near)
+    threshold = (similarity(seed, near) + similarity(seed, far)) / 2
+
+    prev = [_selfies(seed)]
+    cands = [[_selfies(near), _selfies(far)]]
+
+    def canon(s: str) -> str:
+        return Chem.MolToSmiles(Chem.MolFromSmiles(s))
+
+    unconstrained = BBRT(None, BBRTConfig(output_dir=str(tmp_path / "u"), score_func="qed"), [])
+    picked_u = selfies_to_smiles(unconstrained._rank(cands, prev)[0])
+    assert canon(picked_u) == canon(far)  # unconstrained picks the higher-QED (dissimilar) one
+
+    constrained = BBRT(
+        None,
+        BBRTConfig(output_dir=str(tmp_path / "c"), score_func="qed", similarity_min=threshold),
+        [],
+    )
+    picked_c = selfies_to_smiles(constrained._rank(cands, prev)[0])
+    assert canon(picked_c) == canon(near)  # constrained rejects the dissimilar one

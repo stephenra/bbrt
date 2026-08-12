@@ -20,7 +20,7 @@ import pandas as pd
 from bbrt._logging import get_logger
 from bbrt.config import BBRTConfig
 from bbrt.inference.decode import Generator
-from bbrt.scoring.properties import get_scorer, selfies_to_smiles
+from bbrt.scoring.properties import get_scorer, selfies_to_smiles, similarity
 
 logger = get_logger(__name__)
 
@@ -44,12 +44,21 @@ class BBRT:
         # molecule is decoded and scored at most once across the whole loop.
         self._smiles_cache: dict[str | None, str | None] = {}
         self._score_cache: dict[str, float | None] = {}
+        self._sim_cache: dict[tuple[str, str], float] = {}
 
     # -- helpers ------------------------------------------------------------ #
     def _smiles(self, selfies_str: str | None) -> str | None:
         if selfies_str not in self._smiles_cache:
             self._smiles_cache[selfies_str] = selfies_to_smiles(selfies_str)
         return self._smiles_cache[selfies_str]
+
+    def _similarity(self, a_smiles: str | None, b_smiles: str | None) -> float:
+        if a_smiles is None or b_smiles is None:
+            return 0.0
+        key = (a_smiles, b_smiles)
+        if key not in self._sim_cache:
+            self._sim_cache[key] = similarity(a_smiles, b_smiles)
+        return self._sim_cache[key]
 
     def _score(self, smiles: str | None) -> float | None:
         if smiles is None:
@@ -75,15 +84,24 @@ class BBRT:
     def _rank(self, cands: list[list[str]], prev: list[str]) -> list[str]:
         """Pick the best-scoring candidate SELFIES per seed.
 
-        Falls back to the previous seed if a seed produced no scorable
-        candidate, so the population size stays constant across iterations.
+        If ``cfg.similarity_min`` is set, candidates too dissimilar from the
+        seed are excluded (similarity-constrained optimization). Falls back to
+        the previous seed if a seed produced no eligible candidate, so the
+        population size stays constant across iterations.
         """
+        sim_min = self.cfg.similarity_min
         chosen: list[str] = []
         for i, cand_list in enumerate(cands):
+            prev_smiles = self._smiles(prev[i]) if sim_min is not None else None
             best_selfies, best_val = None, float("-inf")
             for selfies_str in cand_list:
-                val = self._score(self._smiles(selfies_str))
-                if val is not None and val > best_val:
+                cand_smiles = self._smiles(selfies_str)
+                val = self._score(cand_smiles)
+                if val is None:
+                    continue
+                if sim_min is not None and self._similarity(prev_smiles, cand_smiles) < sim_min:
+                    continue
+                if val > best_val:
                     best_val, best_selfies = val, selfies_str
             chosen.append(best_selfies if best_selfies is not None else prev[i])
         return chosen

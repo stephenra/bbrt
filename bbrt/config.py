@@ -91,6 +91,10 @@ class BBRTConfig:
     seed_format: str = "selfies"  # "selfies" | "smiles"
     output_dir: str = "output/bbrt"
     score_func: str = "logp04"  # logp04 | drd2 | qed
+    # Similarity-constrained optimization: only keep a candidate whose Tanimoto
+    # similarity to its (previous-iteration) seed is >= this. None = unconstrained
+    # property-max. Constrains drift so results stay analogs of the seed.
+    similarity_min: float | None = None
     translate_type: str = "sd"  # "sd" (stochastic top-k) | "beam"
     num_iters: int = 3  # BBRT iterations
     num_seeds: int = 100  # seeds kept after diverse-subset selection

@@ -12,6 +12,7 @@ from collections.abc import Callable
 
 from bbrt.scoring import drd2_scorer, sascorer
 from bbrt.scoring.featurize import mol_from_smiles as _mol
+from bbrt.scoring.featurize import morgan_bitvect
 
 # Normalization constants for penalized logP (from the graph-to-graph reference,
 # Jin et al. 2018). Kept verbatim to preserve numeric parity with prior work.
@@ -37,6 +38,16 @@ def selfies_to_smiles(selfies_str: str | None) -> str | None:
     except Exception:
         return None
     return smiles or None
+
+
+def similarity(a: str | None, b: str | None) -> float:
+    """Tanimoto similarity of Morgan (r=2, 2048-bit) fingerprints (0.0 if invalid)."""
+    from rdkit import DataStructs
+
+    amol, bmol = _mol(a), _mol(b)
+    if amol is None or bmol is None:
+        return 0.0
+    return DataStructs.TanimotoSimilarity(morgan_bitvect(amol), morgan_bitvect(bmol))
 
 
 def qed(smiles: str | None) -> float:
