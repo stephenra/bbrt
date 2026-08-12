@@ -54,7 +54,27 @@ def objective_for(score_func: str) -> str:
     return _OBJECTIVES.get(score_func, f"improve the {score_func} property")
 
 
-def _build_system_prompt(objective: str, similarity: float) -> str:
+# Default few-shot guidance + worked examples. Improves proposal quality by
+# grounding the edit style. It also feeds prompt caching, though on Opus 4.8 the
+# cache only engages past a ~4096-token prefix -- pass a larger curated
+# ``few_shot`` library to actually cross that threshold.
+_DEFAULT_FEWSHOT = """\
+Common property-improving edits (small, bioisosteric changes that stay close to the seed):
+- Add, remove, or swap a halogen (F, Cl) to tune lipophilicity and metabolic stability.
+- Interconvert a carboxylic acid, ester, and primary amide (classic acid bioisosteres).
+- Add or extend a small alkyl / alkoxy group (methyl, ethyl, methoxy).
+- Add a substituent to an aromatic ring, or swap a phenyl for a pyridyl (aromatic-N bioisostere).
+
+Worked examples (seed -> analogs; note the edits are small and keep the scaffold):
+Seed: CCOc1ccccc1
+{"molecules": ["CCOc1ccc(C)cc1", "CCOc1ccc(F)cc1", "CCCOc1ccccc1", "COc1ccccc1"]}
+Seed: O=C(O)c1ccccc1
+{"molecules": ["O=C(O)c1ccc(F)cc1", "O=C(OC)c1ccccc1", "O=C(N)c1ccccc1", "O=C(O)c1ccc(C)cc1"]}
+Seed: Nc1ccccc1
+{"molecules": ["Cc1ccc(N)cc1", "CNc1ccccc1", "CC(=O)Nc1ccccc1", "Nc1ccccc1F"]}"""
+
+
+def _build_system_prompt(objective: str, similarity: float, few_shot: str) -> str:
     return (
         "You are an expert medicinal chemist performing lead optimization.\n\n"
         f"Given a seed molecule as SMILES, propose structurally similar analogs "
@@ -67,6 +87,7 @@ def _build_system_prompt(objective: str, similarity: float) -> str:
         f">= {similarity:g}.\n"
         "- Favor chemically diverse edits over near-duplicates of each other.\n"
         "- Do not include the seed itself, commentary, or explanations.\n\n"
+        f"{few_shot}\n\n"
         'Respond with a JSON object of the form {"molecules": ["<SMILES>", ...]}.'
     )
 
@@ -106,10 +127,13 @@ class LLMGenerator:
         chat_fn: ChatFn | None = None,
         model: str = "claude-opus-4-8",
         similarity: float = 0.4,
+        few_shot: str | None = None,
         max_tokens: int = 8192,
         thinking: bool = True,
     ):
-        self.system = _build_system_prompt(objective, similarity)
+        self.system = _build_system_prompt(
+            objective, similarity, few_shot if few_shot is not None else _DEFAULT_FEWSHOT
+        )
         self._chat: ChatFn = (
             chat_fn
             if chat_fn is not None
