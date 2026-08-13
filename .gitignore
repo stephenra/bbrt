@@ -101,3 +101,10 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+# BBRT: model checkpoints, generated data, and run outputs
+*.ckpt
+/output/
+/data/
+lightning_logs/
+wandb/

@@ -1,0 +1,22 @@
+# BBRT recursive-translation inference config.
+# Replaces the block of hardcoded params at the bottom of the old src/bbrt.py.
+checkpoint: output/logp04/best.ckpt
+vocab: output/logp04/vocab.json
+seed_file: data/logp04/seeds.csv
+seed_format: selfies           # "selfies" | "smiles"
+output_dir: output/logp04/bbrt
+
+score_func: logp04             # logp04 | qed | drd2
+similarity_min: null           # e.g. 0.4 to keep candidates as analogs of the seed (null = off)
+translate_type: sd             # "sd" (stochastic top-k) | "beam"
+num_iters: 3
+num_seeds: 100
+n_best: 5
+top_k: 5
+top_p: 1.0                     # nucleus sampling (1.0 = disabled)
+temperature: 1.0
+beam_size: 10
+max_decode_len: 256
+diverse_subset: true
+device: cuda                   # falls back to mps/cpu if unavailable
+seed: 1

@@ -1,0 +1,41 @@
+# DRD2 Transformer-encoder classifier config (bbrt drd2-train).
+data_dir: data/drd2
+train_csv: drd2.train.csv       # relative to data_dir, or an absolute path
+test_csv: drd2.test.csv
+smiles_col: null                # auto-detect from the CSV header
+label_col: null                 # auto-detect from the CSV header
+valid_frac: 0.1
+max_len: 256
+batch_size: 128
+num_workers: 4
+max_rows: null                  # cap rows for quick runs (null = all)
+
+model:
+  d_model: 512
+  n_heads: 8
+  num_encoder_layers: 4
+  num_decoder_layers: 4         # unused by the classifier; ModelConfig is shared
+  d_ff: 2048
+  dropout: 0.1
+  max_seq_len: 512
+  tie_embeddings: true
+  rope_theta: 10000.0
+head_hidden: 256
+head_dropout: 0.2
+pool: mean                      # "mean" | "attn" (attn needs more training to help)
+
+lr: 3.0e-4
+weight_decay: 0.01
+warmup_steps: 1000
+max_steps: 20000
+grad_clip: 1.0
+
+output_dir: output/drd2
+vocab_file: vocab.json
+init_from: null                 # seq2seq best.ckpt to warm-start the encoder (optional)
+seed: 1
+precision: bf16-mixed           # use "32-true" on CPU
+accelerator: auto
+devices: auto
+val_check_interval: 500
+log_every_n_steps: 50
