@@ -96,23 +96,32 @@ Outputs (per iteration) land in `output_dir`: `prescored_preds_*.csv` (all
 candidates), `scored_preds_*.csv` (best kept per seed), and `history.csv`
 (population mean/std/max and running best).
 
-## Example result
+## Results
 
-An illustrative `logp04` optimization run — scaled Transformer, 30 seeds, 3 BBRT
-iterations, Tanimoto ≥ 0.4 — comparing the trained generator against the
-`LLMGenerator` backend (Claude Sonnet 4.6 and Opus 4.8):
+The trained Transformer seq2seq vs. the `LLMGenerator` backend (Claude Sonnet 4.6
+and Opus 4.8 +thinking) as the BBRT translation model, across three objectives —
+penalized logP, QED, and a `min(QED, logP)` multi-objective composite — with
+Tanimoto ≥ 0.4, 5 BBRT iterations, and error bands over restarts (Transformer 5,
+Sonnet 2–3, Opus 1). Reproduce with [`experiments/`](experiments/).
 
-![Transformer vs LLM generators on logp04](assets/transformer_vs_llm_logp04.png)
+![Transformer vs. Claude across three objectives](assets/bbrt_comparison_expanded.png)
 
-| generator | Δ mean penalized logP | best molecule |
-|---|---:|---:|
-| Transformer (trained) | +5.15 | 4.15 |
-| LLM — Sonnet 4.6 | +5.80 | 3.63 |
-| LLM — Opus 4.8 (+thinking) | +4.93 | 5.94 |
+| objective (metric) | Transformer | Sonnet 4.6 | Opus 4.8 +thinking |
+|---|---:|---:|---:|
+| QED — mean / best | 0.85 / 0.95 | 0.87 / 0.95 | **0.88** / 0.95 |
+| multi-objective composite — Δ mean | +0.10 | +0.28 | **+0.36** |
+| penalized logP — best | 5.1 ± 0.2 | 5.0 ± 0.3 | 13.2 ⚠️ / +reflect 26.6 ⚠️ |
 
-*Directional only (single run, small population), not a rigorous benchmark: the
-trained model optimizes the population mean essentially for free, while the
-reasoning LLM finds the best individual molecule.*
+Two findings. **(1)** On *bounded* objectives, a general-purpose LLM with zero
+molecular training matches or beats the purpose-trained model — and ~triples its
+multi-objective improvement through plain natural-language steering ("improve
+*both* QED and logP"). **(2) Penalized logP is a broken benchmark**: it grows
+~linearly with carbon count, so the more capable/reflective the optimizer, the
+harder it reward-hacks with long alkyl-chain blobs (best "molecules": Opus 13.2,
+Opus +reflection 26.6 — both QED ≈ 0.03, non-drug-like). Reflection (OPRO-style
+propose→score→re-propose) amplifies whatever the metric rewards: a feature on
+QED/composite, a footgun on unbounded logP. Trust QED and the composite; read the
+logP numbers with the exploit flagged (⚠️ / hatched in the figure).
 
 ## DRD2 activity model
 
