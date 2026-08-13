@@ -4,6 +4,7 @@ from bbrt.scoring.properties import (
     get_scorer,
     penalized_logp,
     qed,
+    qed_logp,
     selfies_to_smiles,
     similarity,
 )
@@ -13,6 +14,7 @@ __all__ = [
     "selfies_to_smiles",
     "penalized_logp",
     "qed",
+    "qed_logp",
     "drd2",
     "similarity",
     "diverse_subset",

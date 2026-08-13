@@ -90,6 +90,22 @@ def penalized_logp(smiles: str | None) -> float | None:
     return norm_log_p + norm_sa + norm_cycle
 
 
+def qed_logp(smiles: str | None) -> float | None:
+    """Multi-objective: reward being good at BOTH QED and penalized logP.
+
+    Chebyshev-style scalarization -- the min of the two normalized objectives, so
+    a molecule must improve *both* to score higher (optimizing one at the expense
+    of the other doesn't help). This is the kind of objective a single-property
+    trained model isn't built for but an LLM can be prompted toward.
+    """
+    lp = penalized_logp(smiles)
+    if lp is None:
+        return None
+    q = qed(smiles)  # already 0.0 for invalid
+    lp_norm = max(0.0, min(1.0, (lp + 5.0) / 10.0))  # ~[-5, 5] -> [0, 1]
+    return min(q, lp_norm)
+
+
 # --------------------------------------------------------------------------- #
 # Scorer registry
 # --------------------------------------------------------------------------- #
@@ -98,6 +114,7 @@ _SCORERS: dict[str, Callable[[str], float | None]] = {
     "penalized_logp": penalized_logp,
     "qed": qed,
     "drd2": drd2,
+    "qed_logp": qed_logp,
 }
 
 

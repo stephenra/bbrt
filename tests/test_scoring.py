@@ -37,6 +37,15 @@ def test_get_scorer_unknown():
         get_scorer("does_not_exist")
 
 
+def test_qed_logp_multiobjective():
+    from bbrt.scoring.properties import qed_logp
+
+    assert get_scorer("qed_logp") is qed_logp
+    v = qed_logp("c1ccccc1")
+    assert v is not None and 0.0 <= v <= 1.0
+    assert qed_logp("not_a_smiles") is None
+
+
 def test_penalized_logp_runs():
     try:
         v = penalized_logp("c1ccccc1")
