@@ -28,6 +28,33 @@ def test_objective_for():
     assert "logP" in objective_for("logp04")
     assert "QED" in objective_for("qed")
     assert "custom" in objective_for("custom")  # unknown -> generic phrasing
+    assert "BOTH" in objective_for("qed_logp")  # multi-objective phrasing
+
+
+def test_concurrency_matches_sequential():
+    fake = lambda system, user: json.dumps({"molecules": ["c1ccc(O)cc1", "CCN"]})  # noqa: E731
+    seeds = [_selfies(x) for x in ["CCO", "CCN", "c1ccccc1", "CCCC"]]
+    seq = LLMGenerator("q", chat_fn=fake, max_workers=1).translate(seeds, n_best=2)
+    par = LLMGenerator("q", chat_fn=fake, max_workers=4).translate(seeds, n_best=2)
+    assert seq == par  # threaded map preserves order + results
+    assert len(par) == 4
+
+
+def test_reflective_calls_and_scores():
+    from bbrt.scoring.properties import qed
+
+    calls = {"n": 0}
+
+    def counting_chat(system, user):
+        calls["n"] += 1
+        return json.dumps({"molecules": ["c1ccc(O)cc1", "CCN", "c1ccccc1"]})
+
+    gen = LLMGenerator(
+        "increase QED", chat_fn=counting_chat, score_fn=qed, reflect_rounds=2, max_workers=1
+    )
+    out = gen.translate([_selfies("CCO")], n_best=3)
+    assert calls["n"] == 3  # 1 initial proposal + 2 reflection rounds
+    assert len(out) == 1 and len(out[0]) >= 1
 
 
 def test_parse_candidates_json_and_lines():

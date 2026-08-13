@@ -38,6 +38,10 @@ _OBJECTIVES = {
     ),
     "qed": "increase the QED (quantitative estimate of drug-likeness)",
     "drd2": "increase predicted DRD2 (dopamine receptor D2) binding activity",
+    "qed_logp": (
+        "simultaneously increase BOTH the QED (drug-likeness) AND the penalized logP "
+        "(lipophilicity) -- improving one at the expense of the other does not count"
+    ),
 }
 
 # Structured-output schema for the default Anthropic backend: a list of SMILES.
@@ -128,12 +132,19 @@ class LLMGenerator:
         model: str = "claude-opus-4-8",
         similarity: float = 0.4,
         few_shot: str | None = None,
+        score_fn: Callable[[str], float | None] | None = None,
+        reflect_rounds: int = 0,
+        max_workers: int = 8,
         max_tokens: int = 8192,
         thinking: bool = True,
     ):
         self.system = _build_system_prompt(
             objective, similarity, few_shot if few_shot is not None else _DEFAULT_FEWSHOT
         )
+        # Reflective (flavor-3, OPRO-style) mode: score own proposals and re-prompt.
+        self.score_fn = score_fn
+        self.reflect_rounds = reflect_rounds
+        self.max_workers = max_workers
         self._chat: ChatFn = (
             chat_fn
             if chat_fn is not None
@@ -155,41 +166,84 @@ class LLMGenerator:
         seed: int | None = None,
         **_ignored,
     ) -> list[list[str]]:
-        """Propose up to ``n_best`` analog SELFIES per seed.
+        """Propose up to ``n_best`` analog SELFIES per seed (concurrently).
 
-        SELFIES in, SELFIES out (matching the trained-model generator). Seeds are
-        decoded to SMILES for the prompt; proposals are validated and re-encoded
-        to SELFIES with RDKit + the ``selfies`` grammar, so only valid molecules
-        are returned.
+        SELFIES in, SELFIES out (matching the trained-model generator). Per-seed
+        calls run on a thread pool (``max_workers``); ``ThreadPoolExecutor.map``
+        preserves order.
         """
-        from bbrt.data.process import smiles_to_selfies
+        if self.max_workers > 1 and len(src_selfies) > 1:
+            from concurrent.futures import ThreadPoolExecutor
+
+            with ThreadPoolExecutor(max_workers=self.max_workers) as ex:
+                return list(ex.map(lambda s: self._for_seed(s, n_best), src_selfies))
+        return [self._for_seed(s, n_best) for s in src_selfies]
+
+    # -- per-seed generation ------------------------------------------------ #
+    def _for_seed(self, seed_selfies: str, n_best: int) -> list[str]:
         from bbrt.scoring.properties import selfies_to_smiles
 
-        results: list[list[str]] = []
-        for sf in src_selfies:
-            smiles = selfies_to_smiles(sf)
-            if not smiles:
-                results.append([])
-                continue
-            user = f"Seed molecule: {smiles}\nPropose {n_best} improved analogs."
-            try:
-                text = self._chat(self.system, user)
-            except Exception as exc:  # one bad seed shouldn't kill the whole run
-                logger.warning("LLM call failed for seed %s: %s", smiles, exc)
-                results.append([])
-                continue
+        smiles = selfies_to_smiles(seed_selfies)
+        if not smiles:
+            return []
+        if self.reflect_rounds and self.score_fn is not None:
+            proposals = self._reflect(smiles, n_best)
+        else:
+            proposals = self._propose(smiles, n_best)
+        return self._to_selfies(proposals, n_best)
 
-            candidates: list[str] = []
-            seen: set[str] = set()
-            for cand in _parse_candidates(text):
-                enc = smiles_to_selfies(cand)  # validates + canonicalizes to SELFIES
-                if enc and enc not in seen:
-                    seen.add(enc)
-                    candidates.append(enc)
-                if len(candidates) >= n_best:
-                    break
-            results.append(candidates)
-        return results
+    def _propose(self, seed_smiles: str, n_best: int, feedback=None) -> list[str]:
+        """One LLM call -> list of candidate SMILES (optionally with score feedback)."""
+        user = f"Seed molecule: {seed_smiles}\nPropose {n_best} improved analogs."
+        if feedback:
+            lines = "\n".join(f"  {smi}  ->  score {sc:.3f}" for smi, sc in feedback)
+            user += (
+                "\n\nYou previously proposed these analogs, with their measured objective "
+                f"scores (higher is better):\n{lines}\n"
+                "Propose new analogs that score strictly higher than the best of these."
+            )
+        try:
+            text = self._chat(self.system, user)
+        except Exception as exc:  # one bad seed shouldn't kill the whole run
+            logger.warning("LLM call failed for seed %s: %s", seed_smiles, exc)
+            return []
+        return _parse_candidates(text)
+
+    def _reflect(self, seed_smiles: str, n_best: int) -> list[str]:
+        """OPRO-style: propose -> score -> re-propose with feedback; keep the best."""
+        pool: dict[str, float] = {}
+
+        def add(smiles_list: list[str]) -> None:
+            for smi in smiles_list:
+                if smi in pool:
+                    continue
+                try:
+                    sc = self.score_fn(smi)  # type: ignore[misc]
+                except Exception:
+                    sc = None
+                if sc is not None:
+                    pool[smi] = sc
+
+        add(self._propose(seed_smiles, n_best))
+        for _ in range(self.reflect_rounds):
+            top = sorted(pool.items(), key=lambda kv: kv[1], reverse=True)[: min(5, n_best)]
+            add(self._propose(seed_smiles, n_best, feedback=top))
+        return [smi for smi, _ in sorted(pool.items(), key=lambda kv: kv[1], reverse=True)]
+
+    def _to_selfies(self, smiles_list: list[str], n_best: int) -> list[str]:
+        """Validate + canonicalize SMILES to SELFIES, dedup, cap at ``n_best``."""
+        from bbrt.data.process import smiles_to_selfies
+
+        out: list[str] = []
+        seen: set[str] = set()
+        for smi in smiles_list:
+            enc = smiles_to_selfies(smi)
+            if enc and enc not in seen:
+                seen.add(enc)
+                out.append(enc)
+            if len(out) >= n_best:
+                break
+        return out
 
 
 def make_anthropic_chat(
