@@ -1,13 +1,13 @@
 # Black Box Recursive Translations (BBRT)
 
-PyTorch / Lightning implementation of **Black Box Recursive Translations (BBRT)**
+A PyTorch / Lightning implementation of **Black Box Recursive Translations (BBRT)**
 for molecular optimization ([arXiv:1912.10156](https://arxiv.org/abs/1912.10156)).
 
 See the blog post here: https://stephenra.com/blog/bbrt
 
 This is a modernized rewrite of the original OpenNMT-based code. The LSTM
 sequence-to-sequence model has now been replaced by a **from-scratch Transformer
-encoder–decoder** (pre-norm, RMSNorm, rotary position embeddings, SwiGLU
+encoder–decoder** (with pre-norm, RMSNorm, rotary position embeddings, SwiGLU
 feed-forward, and weight-tied shared embeddings), trained with **PyTorch Lightning**.
 Molecules are represented as [SELFIES](https://github.com/aspuru-guzik-group/selfies),
 which guarantees every decoded string is a valid molecule.
@@ -24,7 +24,7 @@ which guarantees every decoded string is a valid molecule.
 
 BBRT iteratively (1) translates each seed molecule into candidates, (2) scores
 the candidates by a target property, (3) keeps the best per seed, and (4) feeds
-those back in as the next iteration's seeds.
+those back in as the next iteration's seed molecules.
 
 ## Installation
 
@@ -113,21 +113,20 @@ Sonnet 2–3, Opus 1). Reproduce with [`experiments/`](experiments/).
 | penalized logP — best | 5.1 ± 0.2 | 5.0 ± 0.3 | 13.2 ⚠️ / +reflect 26.6 ⚠️ |
 
 Two findings. **(1)** On *bounded* objectives, a general-purpose LLM with zero
-molecular training matches or beats the purpose-trained model — and ~triples its
-multi-objective improvement through plain natural-language steering ("improve
-*both* QED and logP"). **(2) Penalized logP is a broken benchmark**: it grows
-~linearly with carbon count, so the more capable/reflective the optimizer, the
-harder it reward-hacks with long alkyl-chain blobs (best "molecules": Opus 13.2,
-Opus +reflection 26.6 — both QED ≈ 0.03, non-drug-like). Reflection (OPRO-style
-propose→score→re-propose) amplifies whatever the metric rewards: a feature on
-QED/composite, a footgun on unbounded logP. Trust QED and the composite; read the
-logP numbers with the exploit flagged (⚠️ / hatched in the figure).
+molecular training matches or beats the purpose-trained model, and roughly triples the
+multi-objective improvement through plain natural-language steering (e.g., "improve
+*both* QED and logP"). **(2) Penalized logP is a broken benchmark**: This has been well established ([Renz et al. 2019](https://www.sciencedirect.com/science/article/pii/S1740674920300159)) for a number of reasons but foremost in that logP grows
+approximately linearly with carbon count, so the more capable and reflective the optimizer, the
+harder it may "reward-hack" with long alkyl-chain blobs (e.g., best "molecules" had a penalized logP of 13.2 (Opus),
+and 26.6 (Opus +reflection), however, the corresponding QED was ≈ 0.03, or non-drug-like). Reflection ([OPRO-style](https://arxiv.org/abs/2403.07691)
+propose→score→re-propose) amplifies what the metric consequently rewards. QED and the composite score are more trustworthy, whereas
+logP numbers with the exploit flagged (⚠️) are explicitly noted.
 
 ## DRD2 activity model
 
-`score_func: drd2` uses an in-house classifier — the **same Transformer encoder**
-as the seq2seq model with a small MLP head, trained on SELFIES (replacing the
-legacy 2017 ECFP→SVM pickle). Train it once:
+`score_func: drd2` uses an in-house classifier (the **same Transformer encoder**
+as the seq2seq model with a small MLP head), trained on SELFIES. This replaces the
+legacy ECFP-SVM pickle. To train, run the following:
 
 ```sh
 uv run bbrt drd2-fetch                     # download the public DRD2 activity set
@@ -162,5 +161,5 @@ pretrained weights needed), so `uv run pytest` fully exercises the pipelines.
 - **Penalized logP** delegates the synthetic-accessibility term to RDKit's bundled
   `SA_Score` contrib module (no vendored `fpscores.pkl.gz` needed). logP and QED
   are pure RDKit.
-- The original 2017 ECFP→SVM DRD2 oracle was replaced by the Transformer classifier
-  above; it remains in git history if a zero-training oracle is ever needed.
+- The original 2017 ECFP-SVM DRD2 oracle was replaced by the Transformer classifier
+  above. However, it remains in git history if a zero-training oracle is ever needed.
